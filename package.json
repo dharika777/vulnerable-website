@@ -1,0 +1,13 @@
+{
+  "name": "vulnerable-bola-website",
+  "version": "1.0.0",
+  "description": "Vulnerable Web Application demonstrating API1:2023 - Broken Object Level Authorization (BOLA)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}

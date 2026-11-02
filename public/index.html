@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apex Vault - Vulnerable BOLA Target (API1:2023)</title>
+  <meta name="description" content="A live, unauthenticated demonstration lab for OWASP API1:2023 - Broken Object Level Authorization (BOLA / IDOR)">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Header / Navigation Bar -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Apex Vault <span class="brand-sub">Platform</span></span>
+          <span class="brand-tag">BOLA Security Lab</span>
+        </div>
+      </div>
+      <div class="nav-badges">
+        <div class="badge badge-vuln">
+          <span class="pulsing-dot"></span>
+          <span>API1:2023 Vulnerable</span>
+        </div>
+        <div class="badge badge-auth">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+          </svg>
+          <span>No Login / Unauthenticated</span>
+        </div>
+        <a href="/openapi.json" target="_blank" class="nav-btn" id="openApiLink">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+          <span>OpenAPI Spec</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="main-container">
+    <!-- Hero / Banner Section -->
+    <section class="hero-section">
+      <div class="hero-content">
+        <div class="hero-pill">OWASP API Security Top 10 Target</div>
+        <h1 class="hero-heading">Broken Object Level Authorization <span class="gradient-text">(BOLA)</span></h1>
+        <p class="hero-desc">
+          This system deliberately exposes object-level endpoints (Users, Orders, and Invoices) with 
+          <strong>zero authentication or authorization checks</strong>. Any identity or automated security scanner 
+          can freely access, alter, or purge another entity's private records simply by altering object IDs.
+        </p>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-card">
+          <span class="stat-num" id="statEndpointsCount">6</span>
+          <span class="stat-label">Vulnerable Endpoints</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" id="statAuthStatus">None</span>
+          <span class="stat-label">Auth Layer</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" id="statLiveRequests">0</span>
+          <span class="stat-label">Live Scanner Probes</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Vulnerability Testing Grid -->
+    <div class="dashboard-grid">
+      <!-- Left Column: Interactive BOLA Exploit Lab -->
+      <div class="card interactive-card">
+        <div class="card-header">
+          <div class="card-header-info">
+            <span class="card-step">01</span>
+            <div>
+              <h2 class="card-title">Live BOLA Demonstration Console</h2>
+              <p class="card-subtitle">Select an API resource, change the object ID, and trigger the request.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Resource Selector Tabs -->
+          <div class="tabs-container">
+            <button class="tab-btn active" data-resource="orders" id="tabOrders">
+              <span class="tab-icon">📦</span>
+              Orders API (/api/orders/:id)
+            </button>
+            <button class="tab-btn" data-resource="users" id="tabUsers">
+              <span class="tab-icon">👤</span>
+              Users API (/api/users/:id)
+            </button>
+            <button class="tab-btn" data-resource="invoices" id="tabInvoices">
+              <span class="tab-icon">💳</span>
+              Invoices API (/api/invoices/:id)
+            </button>
+          </div>
+
+          <!-- Target Controls -->
+          <div class="controls-panel">
+            <div class="control-row">
+              <div class="control-group">
+                <label for="httpMethod">HTTP Method</label>
+                <select id="httpMethod" class="input-select">
+                  <option value="GET">GET (Read Object)</option>
+                  <option value="PUT">PUT (Tamper Object)</option>
+                  <option value="DELETE">DELETE (Delete Object)</option>
+                </select>
+              </div>
+
+              <div class="control-group">
+                <label for="objectId">Target Object ID</label>
+                <div class="id-input-wrapper">
+                  <input type="number" id="objectId" class="input-text" value="101">
+                  <div class="id-quick-pills" id="quickPills">
+                    <!-- Dynamic pills injected via JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Endpoint URL preview -->
+            <div class="url-bar">
+              <span class="method-tag method-get" id="displayMethod">GET</span>
+              <span class="url-path" id="displayUrl">/api/orders/101</span>
+              <button class="btn btn-primary" id="btnExecute">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                Send Request
+              </button>
+            </div>
+
+            <!-- Optional Request Body for PUT -->
+            <div class="payload-box hidden" id="payloadContainer">
+              <label for="requestPayload">JSON Payload to Inject:</label>
+              <textarea id="requestPayload" class="input-textarea" rows="3">{"status": "Unauthorized Hijack Completed", "shippingAddress": "Hacker Safehouse, Sector 9"}</textarea>
+            </div>
+          </div>
+
+          <!-- Response Inspector -->
+          <div class="response-viewer">
+            <div class="response-header">
+              <div class="response-status">
+                <span class="status-indicator ready" id="statusIndicator"></span>
+                <span id="responseStatusText">Status: Idle (Click 'Send Request')</span>
+              </div>
+              <div class="response-actions">
+                <button class="icon-btn" id="btnCopyJson" title="Copy JSON">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  <span>Copy</span>
+                </button>
+              </div>
+            </div>
+            <pre class="json-code" id="responseViewer"><code>{
+  "notice": "No request executed yet. Click 'Send Request' or use your scanner against this endpoint."
+}</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Scanner Activity & Endpoints -->
+      <div class="card side-card">
+        <div class="card-header">
+          <div class="card-header-info">
+            <span class="card-step">02</span>
+            <div>
+              <h2 class="card-title">Real-Time Traffic Monitor</h2>
+              <p class="card-subtitle">Live detection of scanner probes and replayed requests.</p>
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btnClearLogs">Clear</button>
+        </div>
+
+        <div class="card-body">
+          <div class="logs-container" id="logsContainer">
+            <div class="empty-state">Waiting for scanner or browser API requests...</div>
+          </div>
+        </div>
+
+        <div class="card-footer scanner-help">
+          <div class="scanner-help-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+            <span>Configuring Your Scanner</span>
+          </div>
+          <p class="scanner-help-text">
+            Point your API scanner (Akto, Postman, Burp, etc.) to:
+          </p>
+          <div class="endpoint-chip">
+            <code>http://localhost:3000/openapi.json</code>
+            <button class="btn-copy-chip" data-copy="http://localhost:3000/openapi.json">Copy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Catalog & Vulnerability Explanation Section -->
+    <section class="catalog-section">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-header-info">
+            <span class="card-step">03</span>
+            <div>
+              <h2 class="card-title">Catalog of Exposed BOLA Endpoints</h2>
+              <p class="card-subtitle">Ready-to-test endpoints satisfying the API1:2023 scanner condition.</p>
+            </div>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="endpoints-table">
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Endpoint Path</th>
+                  <th>Test Object IDs</th>
+                  <th>Authorization Check</th>
+                  <th>Leaked / Vulnerable Data</th>
+                  <th>Quick Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="badge-method get">GET</span></td>
+                  <td><code>/api/orders/{id}</code></td>
+                  <td><code>101, 102, 103, 104</code></td>
+                  <td><span class="pill-vuln">None (Missing)</span></td>
+                  <td>Customer address, masked credit card, order price</td>
+                  <td><button class="btn btn-sm btn-outline test-row-btn" data-method="GET" data-resource="orders" data-id="102">Test ID 102</button></td>
+                </tr>
+                <tr>
+                  <td><span class="badge-method put">PUT</span></td>
+                  <td><code>/api/orders/{id}</code></td>
+                  <td><code>101, 102, 103, 104</code></td>
+                  <td><span class="pill-vuln">None (Missing)</span></td>
+                  <td>Allows modifying delivery address & order state</td>
+                  <td><button class="btn btn-sm btn-outline test-row-btn" data-method="PUT" data-resource="orders" data-id="101">Test Mod</button></td>
+                </tr>
+                <tr>
+                  <td><span class="badge-method get">GET</span></td>
+                  <td><code>/api/users/{id}</code></td>
+                  <td><code>1, 2, 3, 4</code></td>
+                  <td><span class="pill-vuln">None (Missing)</span></td>
+                  <td>PII: Email, SSN last 4, Bank Balance, Phone</td>
+                  <td><button class="btn btn-sm btn-outline test-row-btn" data-method="GET" data-resource="users" data-id="2">Test ID 2</button></td>
+                </tr>
+                <tr>
+                  <td><span class="badge-method put">PUT</span></td>
+                  <td><code>/api/users/{id}</code></td>
+                  <td><code>1, 2, 3, 4</code></td>
+                  <td><span class="pill-vuln">None (Missing)</span></td>
+                  <td>Allows updating account balance, name, role</td>
+                  <td><button class="btn btn-sm btn-outline test-row-btn" data-method="PUT" data-resource="users" data-id="1">Test Mod</button></td>
+                </tr>
+                <tr>
+                  <td><span class="badge-method get">GET</span></td>
+                  <td><code>/api/invoices/{id}</code></td>
+                  <td><code>2001, 2002, 2003</code></td>
+                  <td><span class="pill-vuln">None (Missing)</span></td>
+                  <td>Confidential Bank IBAN & Corporate Tax IDs</td>
+                  <td><button class="btn btn-sm btn-outline test-row-btn" data-method="GET" data-resource="invoices" data-id="2002">Test ID 2002</button></td>
+                </tr>
+                <tr>
+                  <td><span class="badge-method del">DELETE</span></td>
+                  <td><code>/api/orders/{id}</code></td>
+                  <td><code>101, 102, 103, 104</code></td>
+                  <td><span class="pill-vuln">None (Missing)</span></td>
+                  <td>Allows canceling another user's shipment</td>
+                  <td><button class="btn btn-sm btn-outline test-row-btn" data-method="DELETE" data-resource="orders" data-id="104">Test Del</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-container">
+      <span>Apex Vault - Designed for Automated API Security Scanner Verification</span>
+      <span>Vulnerability: <strong>OWASP API1:2023 - Broken Object Level Authorization</strong></span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
